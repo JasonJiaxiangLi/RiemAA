@@ -1,0 +1,174 @@
+function [x_result,time_t,error,error_g,sindex,array_lambda] = AA_modified(f,gradval, x0, c, step_length,  N,andersonm,C1)
+% Input:
+% gradval: gradient of objective function
+% x0: initial x
+% c: Lipschitz constant
+% step_length:
+% xstar: ground truth
+% N :max iteration
+
+% Output:
+% x_result: final result
+% error: norm(x - xstar)
+
+n_dim = length(x0);
+
+% Solver Parameters
+ delta = 2;
+ mu_min = 0;
+ mu = 1e2;
+ 
+ p1 = 0.01;
+ p2 = 0.25;
+ 
+ 
+ constant=1;
+
+ eta0 = 2;
+ eta1 = 0.25;
+sindex=true(N,1);
+ m = andersonm+1;
+ 
+ % Initialization
+ X = zeros(n_dim, m);
+ G = zeros(n_dim, m);
+ array_lambda=zeros(N, 1);
+ F = zeros(n_dim, m);  % F = G - X
+ F_norm = zeros(1,m);  % F = G - X
+ x = x0;
+ total_time=0;
+ count=0;
+ idx=0;
+ for i = 1:N
+     t1=clock;
+     if(idx == 0)
+         X(:, 1) = x;
+         grad0=gradval(x);
+         curr_g = x - step_length * grad0;
+         G(:, 1) = curr_g;
+         F(:, 1) = G(:, 1) - X(:, 1);
+         F_norm(1)=sum(F(:,1).^2);
+         x = G(:, 1);
+         curr_g = x - step_length * gradval(x);
+         t2=clock;
+         total_time=total_time+etime(t2,t1);
+         time_t(i)=total_time;
+         error(i) = f(curr_g);
+         error_g(i)=norm(curr_g-x);
+         idx=idx+1;
+         continue;
+     end
+     
+     m_hat = min(idx+1, m);
+     
+     id = mod(idx, m)+1;
+     
+     
+     X(:, id) = x;
+     G(:, id) =curr_g; 
+     F(:, id) = G(:, id) - X(:, id);
+     F_norm(id)=sum(F(:,id).^2);
+     % Find k0      
+  %    tempF= sum(F(:, 1:m_hat).^2, 1);
+%      [tF_norm, index] = sort(F_norm(1:m_hat));
+%      
+%      k0 = index(1);
+%      kmax = index(1);
+     % we don't need k0
+     k0 = id;
+     
+     % set lambda_k
+     f_k0 = F(:, k0);
+%      lambda = mu * min(constant*norm(f_k0)^(delta-2), C1);
+     %lambda=mu;
+     % solve alpha
+     
+     D =(F(:, 1:m_hat) - repmat(f_k0, 1, m_hat))/sqrt(tF_norm(1));
+     D(:, k0) = [];
+     DTD=D'*D;
+   %  lambda = min(mu,C1/F_norm(1));
+     lambda=mu;
+    % M=[D;sqrt(lambda)*eye(m_hat-1)];
+  %   b=[-(f_k0/sqrt(tF_norm(1)));zeros(m_hat-1,1)];
+     M = DTD + lambda * eye(m_hat - 1);
+     b = - D' * (f_k0/sqrt(tF_norm(1)));
+     alpha =lsqminnorm(M,b);
+   %  alpha =M\b;
+     % set gamma_k
+     gamma =1e-4 * ones(m_hat, 1);
+     gamma(kmax) = 1 - (m_hat - 1) * 1e-4;
+     
+     % compute pred & ared & rho = ared / pred
+
+     % sum_f =F_norm(1:m_hat) * gamma;
+     sum_f = max(F_norm(1:m_hat));
+     
+     x_k0 = X(:, k0);
+     g_k0 = G(:, k0);
+     
+     temp_X = X(:, 1:m_hat) - repmat(x_k0, 1, m_hat);
+     temp_X(:, k0) = [];
+     
+     temp_G = G(:, 1:m_hat) - repmat(g_k0, 1, m_hat);
+     temp_G(:, k0) = [];
+     
+     x_hat = x_k0 + temp_X * alpha;
+     g_hat = g_k0 + temp_G * alpha;
+     trial_g= g_hat-step_length * gradval(g_hat);
+     pred = sum_f - c * norm(g_hat - x_hat)^2;
+     ared = sum_f - norm(trial_g-g_hat)^2;
+     rho = ared /pred;
+     array_lambda(i)=lambda;
+     % update mu
+     if(rho < p1)
+        mu = eta0 * mu;
+       % mu=1;
+       % delta=1;
+      
+     elseif (rho > p2)
+         mu = max(eta1 * mu, mu_min);
+         %delta=min(delta+0.5,4);
+     end
+   %  fprintf("iteration %d, rho=%d, residual=%d,lambda=%d\n",i,rho,norm(trial_g-g_hat),lambda);
+     % update x
+%      if i>=134 && i<=150
+%          rho=0;
+%      end
+     if(rho <= p1)
+%          for j=1:10
+%              x=g_k0+1/2^j*(g_hat-g_k0);
+%              curr_g=x - step_length * gradval(x);
+%              if norm(curr_g-x)^2<=sum_f
+%                  break;
+%              end
+%          end
+           x=g_k0;
+          sindex(i)=false;
+          curr_g=x - step_length * gradval(x);
+         
+     %  fprintf("iteration %d, rho=%d, residual=%d,lambda=%d\n",i,rho,norm(trial_g-g_hat),lambda);
+      %  idx=0;
+         idx=idx+1;
+     else
+         x = g_hat; 
+         curr_g=trial_g;
+         sindex(i)=true;
+         idx=idx+1;
+         count=count+1;
+     end
+     %gx_hat=x_hat-step_length*gradval(x_hat);
+     %fprintf("iteration %d, rho=%d, residual=%d,d_residual=%d,lambda=%d,alpha norm=%d,norm(D^TD)=%d\n",i,rho,norm(gx_hat-g_hat)^2, norm(g_hat-x_hat)^2-norm(f_k0)^2,lambda,norm(alpha),norm(DTD));
+      t2=clock;
+     total_time=total_time+etime(t2,t1);
+     time_t(i)=total_time;
+     error(i) = f(curr_g);
+     error_g(i)=norm(curr_g-x);
+%      if i>20 && abs(error(i)-error(i-20))<1e-20
+%          break;
+%      end
+ end
+% fprintf("successful stpes=%d\n",count);
+ x_result = x;
+end
+
+
