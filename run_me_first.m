@@ -8,6 +8,6 @@ cd solver;
 addpath(genpath(pwd));
 cd ..;
 
-cd manopt;
-addpath(genpath(pwd));
-cd ..;
+% cd manopt;
+% addpath(genpath(pwd));
+% cd ..;
