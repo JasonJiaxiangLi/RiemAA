@@ -1,6 +1,6 @@
 function Xbar = mfd_average(M, X, c)
 % implement spd averging on X with weight c
-% Use weighted average recursion where retr and ivnerse retraction
+% Use weighted average recursion where retr and inverse retraction
 % are defined in manopt
 %
 % To use exponential map, inverse exponential map, please redefine the

@@ -44,6 +44,7 @@ function test_spdfm()
 
     % compute optimal solution using rlbfgs
     options.tolgradnorm = 1e-10;
+    disp('compute optimal solution using rlbfgs')
     [Xopt, costopt] = rlbfgs(problem, [], options);
     
 
@@ -95,6 +96,7 @@ function test_spdfm()
 
     %% RiemNA
     clear options
+    disp("Testing RiemNA")
     k = 5;
     lambda = 1e-8;
     options.stepsize = stepsize;
@@ -105,6 +107,27 @@ function test_spdfm()
     options.average = @mfd_average;
     
     [xrna, costrna, info_riemna] = RiemNA(problem, x0, options);
+    %}
+    
+    %% RiemAA_AR
+    clear options
+    disp("Testing RiemAA-AR")
+    k = 5;
+    lambda = 1e-8;
+    options.stepsize = 0.7;
+    options.maxiter = maxiter;
+    options.tolgradnorm = tolgradnorm;
+    options.memory = k;
+    options.reg_lambda = lambda;
+    options.average = @mfd_average;
+    options.mu = 1;
+    options.p1 = 0.01;
+    options.p2 = 0.25;
+    options.eta1 = 2;
+    options.eta2 = 0.25;
+    options.c = 0.1;
+    
+    [xraa, costraa, info_riemaa] = RiemAA_AR(problem, x0, options);
     %}
 
     
@@ -122,6 +145,7 @@ function test_spdfm()
     optgap_rnag = abs([info_rnag.cost] - costopt);
     optgap_rnag_sc = abs([info_rnagsc.cost] - costopt);
     optgap_ragd = abs([info_ragd.cost] - costopt);
+    optgap_riemaa = abs([info_riemaa.cost] - costopt);
 
 
     h1 = figure;
@@ -130,11 +154,12 @@ function test_spdfm()
     semilogy([info_rnag.iter], [info_rnag.gradnorm], '-x', 'color', colors{7},  'LineWidth', lw, 'MarkerSize',ms); hold on;
     semilogy([info_rnagsc.iter], [info_rnagsc.gradnorm], '-d', 'color', colors{6},  'LineWidth', lw, 'MarkerSize',ms); hold on;
     semilogy([info_riemna.iter], [info_riemna.gradnorm], '-*', 'color', colors{2}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
+    semilogy([info_riemaa.iter], [info_riemaa.gradnorm], '-*', 'color', colors{4}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
     ax1 = gca;
     set(ax1,'FontSize', fs);
     xlabel('Iterations', 'fontsize', fs);
     ylabel('Gradnorm', 'fontsize', fs);
-    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA'}, 'fontsize', fs-5);
+    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA', 'RiemAA-AR'}, 'fontsize', fs-5);
 
     h2 = figure;
     semilogy([info_gd.iter], optgap_gd, '-o', 'color', colors{1}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
@@ -142,11 +167,12 @@ function test_spdfm()
     semilogy([info_rnag.iter], optgap_rnag, '-x', 'color', colors{7},  'LineWidth', lw, 'MarkerSize',ms); hold on;
     semilogy([info_rnagsc.iter], optgap_rnag_sc, '-d', 'color', colors{6},  'LineWidth', lw, 'MarkerSize',ms); hold on;
     semilogy([info_riemna.iter], optgap_riemna, '-*', 'color', colors{2}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
+    semilogy([info_riemaa.iter], optgap_riemaa, '-*', 'color', colors{4}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
     ax1 = gca;
     set(ax1,'FontSize', fs);
     xlabel('Iterations', 'fontsize', fs);
     ylabel('Optimality gap', 'fontsize', fs);
-    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA'}, 'fontsize', fs-5);
+    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA', 'RiemAA-AR'}, 'fontsize', fs-5);
     
     h3 = figure;
     semilogy([info_gd.time], optgap_gd, '-o', 'color', colors{1}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
@@ -154,11 +180,12 @@ function test_spdfm()
     semilogy([info_rnag.time], optgap_rnag, '-x', 'color', colors{7},  'LineWidth', lw, 'MarkerSize',ms); hold on;
     semilogy([info_rnagsc.time], optgap_rnag_sc, '-d', 'color', colors{6},  'LineWidth', lw, 'MarkerSize',ms); hold on;
     semilogy([info_riemna.time], optgap_riemna, '-*', 'color', colors{2}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
+    semilogy([info_riemaa.time], optgap_riemaa, '-*', 'color', colors{4}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
     ax1 = gca;
     set(ax1,'FontSize', fs);
     xlabel('Time (s)', 'fontsize', fs);
     ylabel('Optimality gap', 'fontsize', fs);
-    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA'}, 'fontsize', fs-5);
+    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA', 'RiemAA-AR'}, 'fontsize', fs-5);
 
 
 end
