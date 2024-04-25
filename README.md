@@ -1,15 +1,8 @@
-# RiemNA
-Riemannian acceleration via extrapolation. This is the code for the paper: "Riemannian accelerated gradient methods via extrapolation" published on AISTATS 2023. Please cite the paper if you find the code useful:
+# RiemAA
 
-@inproceedings{han2023riemannian, <br>
- &#8194; title={Riemannian accelerated gradient methods via extrapolation}, <br>
- &#8194;  author={Han, Andi and Mishra, Bamdev and Jawanpuria, Pratik and Gao, Junbin}, <br>
- &#8194;  booktitle={International Conference on Artificial Intelligence and Statistics}, <br>
- &#8194;  pages={1554--1585}, <br>
- &#8194;  year={2023}, <br>
- &#8194;  organization={PMLR} <br>
-}
+To do the positive definite cone tests, do the following steps
+1. download the newest manopt package from https://www.manopt.org/downloads.html and unzip it in the root folder
+2. run run_me_first.m
+3. test with test_spdfm.m
 
-
-
-To implement, download ManOpt from https://github.com/NicolasBoumal/manopt and place under the main folder. Run the run_me_first.m to add the folders to the path. 
+The new solver is solver/RiemAA_AR.m
