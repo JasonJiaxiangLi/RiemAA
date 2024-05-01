@@ -1,4 +1,4 @@
-function test_spdfm()
+function test1()
 % test on frechet mean computation on SPD manifold
 
     clear;
