@@ -1,6 +1,6 @@
 function [xCur, xCurCost, info, options] = RiemAA_AR(problem, x0, options)
-% Implement the offline version of RiemAA_AR using the iterates from steepest
-% descent. Notice that this implementation is built on the iterates from
+% Implement the offline version of RiemAA_AR 
+% Notice that this implementation is built on the iterates from
 % steepest descent and should be a standalone solver. 
 %
 % function [x, cost, info, options] = RiemAA_AR(problem)
@@ -156,9 +156,9 @@ function [xCur, xCurCost, info, options] = RiemAA_AR(problem, x0, options)
         
         % the main update
         % transport 
-        omega = 0;
+        omega = xCurresNorm;
         for ii = 1 : m
-            omega = max(omega, M.norm(xPre, rHistory{ii}));
+            omega = max(omega, rnormHistory(ii) );
             rHistory{ii} = M.transp(xPre, xCur, rHistory{ii});
             delta_rHistory{ii} = rHistory{ii} - curstep; 
             delta_xHistory{ii} = M.transp(xPre, xCur, delta_xHistory{ii});
@@ -274,9 +274,11 @@ function [xCur, xCurCost, info, options] = RiemAA_AR(problem, x0, options)
     %% helper
     function c = computecoeff(Rmat, b, lambda)
         sizeR = size(Rmat, 1);
-        reg_Rmat = Rmat + 2 * eye(sizeR) * lambda;
-        c = - reg_Rmat\(2 * b);
-        % c = c / sum(c);
+%         reg_Rmat = Rmat + 2 * eye(sizeR) * lambda;
+%         c = - reg_Rmat\(2 * b);
+
+        c = lsqminnorm(Rmat +  eye(sizeR) * lambda,-b);
+
     end
     
     function res = do_average(lst, alpha, length)
