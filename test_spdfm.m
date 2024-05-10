@@ -6,7 +6,7 @@ function test_spdfm()
     rng('default');
     rng(22);
     
-    d = 10;
+    d = 30;
     N = 100;
 
     A = zeros(d,d,N);
@@ -127,7 +127,7 @@ function test_spdfm()
     options.eta2 = 0.25;
     options.c = 0.1;
     
-    [xraa, costraa, info_riemaa] = RiemAA_AR(problem, x0, options);
+    [xraa, costraa, info_riemaa] = RAA_AR(problem, x0, options);
     %}
 
     

@@ -191,7 +191,7 @@ function [xCur, xCurCost, info, options] = RAA_AR(problem, x0, options)
             delta_xHistory{ii} = M.transp(xPre, xCur, delta_xHistory{ii});
         end
         
-        if iter >= options.memory -1
+        if iter >= options.memory - 1
             % compute tilde x
             tildeX_memo = cell(1, m);
             for ii = m : -1 : 1
