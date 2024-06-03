@@ -1,7 +1,5 @@
 function [xCur, xCurCost, info, options] = RAA_AR(problem, x0, options)
-% Implement the offline version of RiemAA_AR using the iterates from steepest
-% descent. Notice that this implementation is built on the iterates from
-% steepest descent and should be a standalone solver. 
+% Implementation of RiemAA_AR 
 %
 % function [x, cost, info, options] = RAA_AR(problem)
 % function [x, cost, info, options] = RAA_AR(problem, x0)
@@ -46,7 +44,7 @@ function [xCur, xCurCost, info, options] = RAA_AR(problem, x0, options)
 
     % check averaging scheme been provided 
     if ~isfield(options, 'average')
-        error('No averaging scheme provided. RiemNA cannot be applied.')
+        error('No averaging scheme provided. raa-ar cannot be applied.')
     end
     %averagefn = options.average;
     
@@ -65,7 +63,7 @@ function [xCur, xCurCost, info, options] = RAA_AR(problem, x0, options)
     if options.memory == Inf
         if isinf(options.maxiter)
             options.memory = 10000;
-            warning('RiemNA:memory', ['options.memory and options.maxiter' ...
+            warning('RAA-AR:memory', ['options.memory and options.maxiter' ...
               ' are both Inf; options.memory has been changed to 10000.']);
         else
             options.memory = options.maxiter;

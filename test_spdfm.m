@@ -6,7 +6,7 @@ function test_spdfm()
     rng('default');
     rng(22);
     
-    d = 30;
+    d = 10;
     N = 100;
 
     A = zeros(d,d,N);
@@ -129,6 +129,23 @@ function test_spdfm()
     
     [xraa, costraa, info_riemaa] = RAA_AR(problem, x0, options);
     %}
+    
+    %% Rram
+    clear options
+    disp("Testing RRAM")
+    k = 5;
+    lambda = 1e-8;
+    options.stepsize = 0.7;
+    options.maxiter = maxiter;
+    options.tolgradnorm = tolgradnorm;
+    options.memory = k;
+    options.reg_lambda = lambda;
+    options.average = @mfd_average;
+    options.mu = 1;
+    options.c = 0.1;
+    
+    [xrram, costrram, info_rram] = RRAM(problem, x0, options);
+    %}
 
     
     %% plots
@@ -146,6 +163,7 @@ function test_spdfm()
     optgap_rnag_sc = abs([info_rnagsc.cost] - costopt);
     optgap_ragd = abs([info_ragd.cost] - costopt);
     optgap_riemaa = abs([info_riemaa.cost] - costopt);
+    optgap_rram = abs([info_rram.cost] - costopt);
 
 
     h1 = figure;
@@ -155,11 +173,12 @@ function test_spdfm()
     semilogy([info_rnagsc.iter], [info_rnagsc.gradnorm], '-d', 'color', colors{6},  'LineWidth', lw, 'MarkerSize',ms); hold on;
     semilogy([info_riemna.iter], [info_riemna.gradnorm], '-*', 'color', colors{2}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
     semilogy([info_riemaa.iter], [info_riemaa.gradnorm], '-*', 'color', colors{4}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
+    semilogy([info_rram.iter], [info_rram.gradnorm], '-*', 'color', colors{5}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
     ax1 = gca;
     set(ax1,'FontSize', fs);
     xlabel('Iterations', 'fontsize', fs);
     ylabel('Gradnorm', 'fontsize', fs);
-    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA', 'RiemAA-AR'}, 'fontsize', fs-5);
+    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA', 'RiemAA-AR', 'RRAM'}, 'fontsize', fs-5);
 
     h2 = figure;
     semilogy([info_gd.iter], optgap_gd, '-o', 'color', colors{1}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
@@ -168,11 +187,12 @@ function test_spdfm()
     semilogy([info_rnagsc.iter], optgap_rnag_sc, '-d', 'color', colors{6},  'LineWidth', lw, 'MarkerSize',ms); hold on;
     semilogy([info_riemna.iter], optgap_riemna, '-*', 'color', colors{2}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
     semilogy([info_riemaa.iter], optgap_riemaa, '-*', 'color', colors{4}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
+    semilogy([info_rram.iter], optgap_rram, '-*', 'color', colors{5}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
     ax1 = gca;
     set(ax1,'FontSize', fs);
     xlabel('Iterations', 'fontsize', fs);
     ylabel('Optimality gap', 'fontsize', fs);
-    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA', 'RiemAA-AR'}, 'fontsize', fs-5);
+    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA', 'RiemAA-AR', 'RRAM'}, 'fontsize', fs-5);
     
     h3 = figure;
     semilogy([info_gd.time], optgap_gd, '-o', 'color', colors{1}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
@@ -181,11 +201,12 @@ function test_spdfm()
     semilogy([info_rnagsc.time], optgap_rnag_sc, '-d', 'color', colors{6},  'LineWidth', lw, 'MarkerSize',ms); hold on;
     semilogy([info_riemna.time], optgap_riemna, '-*', 'color', colors{2}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
     semilogy([info_riemaa.time], optgap_riemaa, '-*', 'color', colors{4}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
+    semilogy([info_rram.time], optgap_rram, '-*', 'color', colors{5}, 'LineWidth', lw, 'MarkerSize',ms);  hold on;
     ax1 = gca;
     set(ax1,'FontSize', fs);
     xlabel('Time (s)', 'fontsize', fs);
     ylabel('Optimality gap', 'fontsize', fs);
-    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA', 'RiemAA-AR'}, 'fontsize', fs-5);
+    legend({'RGD', 'RAGD', 'RNAG-C', 'RNAG-SC', 'RGD+RiemNA', 'RiemAA-AR', 'RRAM'}, 'fontsize', fs-5);
 
 
 end

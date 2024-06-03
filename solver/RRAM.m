@@ -1,7 +1,5 @@
 function [xCur, xCurCost, info, options] = RRAM(problem, x0, options)
-% Implement the offline version of RRAM using the iterates from steepest
-% descent. Notice that this implementation is built on the iterates from
-% steepest descent and should be a standalone solver. 
+% Implementation of RRAM
 %
 % function [x, cost, info, options] = RRAM(problem)
 % function [x, cost, info, options] = RRAM(problem, x0)
@@ -34,6 +32,7 @@ function [xCur, xCurCost, info, options] = RRAM(problem, x0, options)
 
     localdefaults.memory = 5; % which is also the update frequency
     localdefaults.reg_lambda = 1e-8; 
+    c1 = 1e-7;
     
 
     %%
@@ -51,12 +50,13 @@ function [xCur, xCurCost, info, options] = RRAM(problem, x0, options)
     %averagefn = options.average;
     
     mu = options.mu;
-    p1 = options.p1;
-    p2 = options.p2;
-    eta1 = options.eta1;
-    eta2 = options.eta2;
-    c = options.c;
+%     p1 = options.p1;
+%     p2 = options.p2;
+%     eta1 = options.eta1;
+%     eta2 = options.eta2;
+%     c = options.c;
     stepsize = options.stepsize;
+    beta = stepsize;
     
     % To make sure memory in range [2, Inf)
     % how many residual stored, it needs to be larger than 1, otherwise it
@@ -65,7 +65,7 @@ function [xCur, xCurCost, info, options] = RRAM(problem, x0, options)
     if options.memory == Inf
         if isinf(options.maxiter)
             options.memory = 10000;
-            warning('RiemNA:memory', ['options.memory and options.maxiter' ...
+            warning('RRAM:memory', ['options.memory and options.maxiter' ...
               ' are both Inf; options.memory has been changed to 10000.']);
         else
             options.memory = options.maxiter;
@@ -109,8 +109,9 @@ function [xCur, xCurCost, info, options] = RRAM(problem, x0, options)
     %% AA steps
     iter = 0; % counter k in the paper
     % performing one step of RGD
-    desc_dir = problem.M.lincomb(xCur, -1, newgrad);
-    curstep = problem.M.lincomb(xCur, stepsize, desc_dir);
+%     desc_dir = problem.M.lincomb(xCur, -1, newgrad);
+%     curstep = problem.M.lincomb(xCur, stepsize, desc_dir);
+    curstep = -stepsize * newgrad;
     newx = problem.M.retr(xCur, curstep);
     % Query the cost function and its gradient
     [newcost, newgrad] = getCostGrad(problem, newx);
@@ -143,8 +144,9 @@ function [xCur, xCurCost, info, options] = RRAM(problem, x0, options)
         xCurGradient = newgrad;
         xCurGradNorm = newgradnorm;
         xCurCost = newcost;
-        desc_dir = problem.M.lincomb(xCur, -1, xCurGradient);
-        curstep = problem.M.lincomb(xCur, stepsize, desc_dir);
+%         desc_dir = problem.M.lincomb(xCur, -1, xCurGradient);
+%         curstep = problem.M.lincomb(xCur, stepsize, desc_dir);
+        curstep = -stepsize * xCurGradient;
         r_curr = -newgrad;
         
 %         rHistory{mod(iter, options.memory) + 1} = curstep;
@@ -175,8 +177,8 @@ function [xCur, xCurCost, info, options] = RRAM(problem, x0, options)
         end
         
         % update the regularization lambda_k
-        xCurresNorm = M.norm(xCur, curstep);
-        reg_lambda = mu * xCurresNorm^2;
+        % xCurresNorm = M.norm(xCur, r_curr);
+        % reg_lambda = mu * xCurresNorm^2;
 
         % reset timer
         timetic_riemna = tic();
@@ -193,79 +195,69 @@ function [xCur, xCurCost, info, options] = RRAM(problem, x0, options)
                 if temp_idx == 0
                     temp_idx = options.memory;
                 end
-                delta_xHistory{temp_idx} = M.transp(xPre, xCur, delta_xHistory{temp_idx});
+                delta_rHistory{temp_idx} = M.transp(xPre, xCur, delta_rHistory{temp_idx});
             end
         end
         
-        
-        % compute tilde x
-        tildeX_memo = cell(1, m);
-        for ii = m : -1 : 1
-            temp_idx = mod(curr_idx - 1 + ii - m, options.memory);
-            if temp_idx == 0
-                temp_idx = options.memory;
-            end
-            if ii == m
-                tildeX_memo{temp_idx} = - delta_xHistory{temp_idx};
-            else
-                pre_idx = mod(temp_idx + 1, options.memory);
-                if pre_idx == 0
-                    pre_idx = options.memory;
-                end
-                tildeX_memo{temp_idx} = tildeX_memo{pre_idx}...
-                                        - delta_xHistory{temp_idx};
-            end
-        end
+%         % compute tilde x
+%         tildeX_memo = cell(1, m);
+%         for ii = m : -1 : 1
+%             temp_idx = mod(curr_idx - 1 + ii - m, options.memory);
+%             if temp_idx == 0
+%                 temp_idx = options.memory;
+%             end
+%             if ii == m
+%                 tildeX_memo{temp_idx} = - delta_xHistory{temp_idx};
+%             else
+%                 pre_idx = mod(temp_idx + 1, options.memory);
+%                 if pre_idx == 0
+%                     pre_idx = options.memory;
+%                 end
+%                 tildeX_memo{temp_idx} = tildeX_memo{pre_idx}...
+%                                         - delta_xHistory{temp_idx};
+%             end
+%         end
 
         % compute Rmat
+        delta = c1 * M.norm(xCur, r_curr); % there is some issue here...
         Rmat = zeros(m);
         b = zeros(m, 1);
         for ii = 1 : m
             for jj = ii : m
-                Rmat(ii,jj) = M.inner(xCur, delta_rHistory{ii}, delta_rHistory{jj});% / M.norm(xCur, curstep)^2;
+                Rmat(ii,jj) = M.inner(xCur, delta_rHistory{ii}, delta_rHistory{jj}) ...
+                              + delta * M.inner(xCur, delta_xHistory{ii}, delta_xHistory{jj});
                 Rmat(jj,ii) = Rmat(ii,jj);
             end
-            b(ii) = M.inner(xCur, curstep, delta_rHistory{ii});%/ M.norm(xCur, curstep)^2;
+            b(ii) = M.inner(xCur, r_curr, delta_rHistory{ii});%/ M.norm(xCur, curstep)^2;
         end
         % % normalization to ensure c is scale invariant
         % Rmat = Rmat / norm(Rmat); 
 
-        alpha = computecoeff(Rmat, b, reg_delta);
-        r_hat = curstep + do_average(delta_rHistory, alpha, m);
+        gamma = computecoeff(Rmat, b, 0);
+        % r_hat = curstep + do_average(delta_rHistory, gamma, m);
+        bar_delta_x = beta * r_curr - do_average(delta_xHistory, gamma, m)...
+                      - beta * do_average(delta_rHistory, gamma, m);
+        
 
-
-        bar_delta_x = r_hat + do_average(tildeX_memo, alpha, m);
+        % bar_delta_x = r_hat + do_average(tildeX_memo, gamma, m);
         tempx = M.retr(xCur, bar_delta_x);
-        [~, tempgrad] = getCostGrad(problem, tempx);
-        desc_dir = problem.M.lincomb(tempx, -1, tempgrad);
-        % temp_step is bar{r}_k+1 in the paper
-        temp_step = problem.M.lincomb(tempx, stepsize, desc_dir);
+        [tempcost, ~] = getCostGrad(problem, tempx);
+        is_descent = (tempcost <= xCurCost);
 
-        % compute the ratio
-        rho = (omega - M.norm(tempx, temp_step)) / (omega - c * M.norm(xCur, r_hat));
-        % disp(['rho: ', rho])
-        if rho <= p1
-            mu = eta1 * mu;
-        elseif rho >= p2
-            mu = max(1e-8,eta2 * mu);
-        end
-
-        temp_idx = mod(curr_idx, options.memory);
+        temp_idx = mod(curr_idx + 1, options.memory);
         if temp_idx == 0
              temp_idx = options.memory;
         end
         
         % verify if it's descent
-        
-        
         if is_descent
             %disp("yes")
             newx = tempx;
-
-            delta_xHistory{temp_idx} = bar_delta_x;
             % compute new grad
             [newcost, newgrad] = getCostGrad(problem, newx);
             newgradnorm = problem.M.norm(newx, newgrad);
+            
+            delta_xHistory{temp_idx} = bar_delta_x;
         else
             newx = problem.M.retr(xCur, curstep);
             % compute new grad
@@ -273,18 +265,10 @@ function [xCur, xCurCost, info, options] = RRAM(problem, x0, options)
             newgradnorm = problem.M.norm(newx, newgrad);
             desc_dir = problem.M.lincomb(xCur, -1, xCurGradient);
             newstep = problem.M.lincomb(xCur, stepsize, desc_dir);
-%             temp_idx = mod(curr_idx, options.memory);
-%             if temp_idx == 0
-%                 temp_idx = options.memory;
-%             end
+            
             delta_xHistory{temp_idx} = newstep;
         end
         
-        
-        
-        % update memory
-        
-
         % Save stats in a struct array info.
         stats = savestats();
         %keyboard;
@@ -326,6 +310,6 @@ function [xCur, xCurCost, info, options] = RRAM(problem, x0, options)
         stats = applyStatsfun(problem, xCur, [], [], options, stats);
     end
 
-    end
+end
     
 
